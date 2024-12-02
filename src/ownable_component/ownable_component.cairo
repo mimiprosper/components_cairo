@@ -1,31 +1,40 @@
+// Ownable component. 
+// This component helps manage ownership of a contract
+
 use core::starknet::ContractAddress;
 
-#[starknet::interface]
+// interface declaration
+#[starknet::interface]  
 pub trait IOwnable<TContractState> {
-    fn owner(self: @TContractState) -> ContractAddress;
+    fn owner(self: @TContractState ) -> ContractAddress;
     fn transfer_ownership(ref self: TContractState, new_owner: ContractAddress);
     fn renounce_ownership(ref self: TContractState);
 }
 
+// Errors
 mod Errors {
     pub const ZERO_ADDRESS_OWNER: felt252 = 'Owner cannot be address zero';
     pub const ZERO_ADDRESS_CALLER: felt252 = 'Caller cannot be address zero';
     pub const NOT_OWNER: felt252 = 'Caller not owner';
 }
 
+// Component implementation
 #[starknet::component]
 pub mod ownable_component {
+    // import modules used for the components
     use core::num::traits::Zero;
     use core::starknet::{ContractAddress, get_caller_address};
-    use core::starknet::storage::{StoragePointerReadAccess, StoragePointerWriteAccess};
-    use super::Errors;
+    use core::starknet::storage::{StoragePointerReadAccess, StoragePointerWriteAccess}; //read or write to storage
+    use super::Errors; // import the error modules
 
+    // storage 
     #[storage]
     pub struct Storage {
         owner: ContractAddress,
         caller: ContractAddress
     }
 
+    // events
     #[event]
     #[derive(Drop, starknet::Event)]
     pub enum Event {
@@ -33,12 +42,14 @@ pub mod ownable_component {
     }
 
     #[derive(Drop, starknet::Event)]
-    struct OwnershipTransferred {
+    pub struct OwnershipTransferred {
         previous_owner: ContractAddress,
         new_owner: ContractAddress,
     }
 
-    #[embeddable_as(Ownable)]
+    // Ownable Implementation. This makes it publically accessible to external contracts
+    // This makes composibilty work
+    #[embeddable_as(Ownable)]  
     impl OwnableImpl<
         TContractState, +HasComponent<TContractState>
     > of super::IOwnable<ComponentState<TContractState>> {
@@ -60,7 +71,8 @@ pub mod ownable_component {
         }
     }
 
-    #[generate_trait]
+    // This is for the internal implementation of the component
+    #[generate_trait] 
     pub impl PrivateImpl<
         TContractState, +HasComponent<TContractState>
     > of PrivateTrait<TContractState> {
